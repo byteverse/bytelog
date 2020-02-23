@@ -12,11 +12,12 @@ module Logger
     -- * Log
   , builder
   , bytes
+  , cstring
     -- * Flush
   , flush
   ) where
 
-import Control.Concurrent (MVar,threadWaitWrite,putMVar,newMVar,tryTakeMVar)
+import Control.Concurrent (MVar,threadWaitWrite,putMVar,newMVar,tryTakeMVar,rtsSupportsBoundThreads)
 import Control.Exception (SomeException,toException,onException,mask)
 import Control.Monad (when)
 import Data.Bits ((.&.))
@@ -26,6 +27,7 @@ import Data.Bytes.Types (Bytes(Bytes))
 import Data.IORef (IORef,atomicModifyIORef',newIORef)
 import Data.Primitive (MutablePrimArray)
 import Foreign.C.Error (eINTR,eWOULDBLOCK,eAGAIN,eBADF)
+import Foreign.C.String (CString)
 import GHC.Exts (RealWorld)
 import GHC.IO (IO(IO))
 import Posix.File (uninterruptibleWriteByteArray,uninterruptibleGetStatusFlags)
@@ -40,6 +42,9 @@ import qualified GHC.IO.FD as FD
 import qualified GHC.IO.Handle.FD as FD
 import qualified Posix.File as File
 
+-- | An output channel for logs. The intent is that there is only
+-- one logger per application, opened at load time and shared across
+-- all threads.
 data Logger = Logger
   {-# UNPACK #-} !Fd
   -- ^ Output file descriptor, often stdout or stderr. Must be
@@ -64,17 +69,21 @@ data Logger = Logger
   -- able to provide the number of bytes that result from running
   -- a builder, so we use this hack instead.
 
+-- | Convert a 'Handle' to a logger by extracting its file descriptor.
+-- Warning: the caller must ensure that the handle does not get garbage
+-- collected. 
 fromHandle :: Handle -> IO Logger
 fromHandle h = do
   FD.FD{FD.fdFD=fd} <- FD.handleToFd h
   fromFd (Fd fd)
 
+-- | Convert a file descriptor to a logger.
 fromFd :: Fd -> IO Logger
 fromFd !fd = do
+  when (not rtsSupportsBoundThreads) (die threadedRuntimeRequired)
   status <- uninterruptibleGetStatusFlags fd >>= \case
     Left _ -> die flagsFailure
     Right status -> pure status
-  -- when (File.append .&. status /= File.append) (die statusAppendFailure)
   when (not (File.isWriteOnly status || File.isReadWrite status))
     (die statusWriteFailure)
   let !nonblocking = if File.nonblocking .&. status == File.nonblocking
@@ -89,7 +98,11 @@ fromFd !fd = do
 threshold :: Int
 threshold = 32
 
--- | Run the byte builder, pushing the result into the logger.
+-- | Log a @NUL@-terminated C string.
+cstring :: Logger -> CString -> IO ()
+cstring g str = builder g (Builder.cstring str)
+
+-- | Log the chunks that result from executing the byte builder.
 builder :: Logger -> Builder -> IO ()
 builder logger@(Logger _ _ _ ref counterRef) bldr = do
   atomicModifyIORef' ref
@@ -100,7 +113,7 @@ builder logger@(Logger _ _ _ ref counterRef) bldr = do
   !counter <- bumpCounter counterRef
   when (counter >= threshold) (flush logger)
 
--- | Push bytes into the logger.
+-- | Log a byte sequence.
 bytes :: Logger -> Bytes -> IO ()
 bytes logger@(Logger _ _ _ ref counterRef) !b = do
   atomicModifyIORef' ref
@@ -115,7 +128,7 @@ bumpCounter arr = do
   PM.writePrimArray arr 0 counter'
   pure counter'
 
--- | Flush all logs out to a file descriptor.
+-- | Flush any pending logs out to the file descriptor.
 flush :: Logger -> IO ()
 {-# noinline flush #-}
 flush (Logger fd nonblocking lock ref _) = mask $ \restore -> tryTakeMVar lock >>= \case
@@ -207,3 +220,7 @@ flushFailure = toException (userError "Data.Bytes.Log: flush encountered unknown
 flushBadFdFailure :: SomeException
 {-# noinline flushBadFdFailure #-}
 flushBadFdFailure = toException (userError "Data.Bytes.Log: EBADF while flushing")
+
+threadedRuntimeRequired :: SomeException
+{-# noinline threadedRuntimeRequired #-}
+threadedRuntimeRequired = toException (userError "Data.Bytes.Log: threaded runtime required")

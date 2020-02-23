@@ -1,1 +1,16 @@
-packages: . ../posix-api ../small-bytearray-builder ../byteslice
+packages: .
+
+source-repository-package
+  type: git
+  location: https://github.com/byteverse/byteslice
+  tag: 311d2bc69c3da4555dc3d0961b05fc6043d0d8a5
+
+source-repository-package
+  type: git
+  location: https://github.com/byteverse/small-bytearray-builder
+  tag: 1f2aa9b110b56114ceacdc08193a7dcea02c8223
+
+source-repository-package
+  type: git
+  location: https://github.com/andrewthad/posix-api
+  tag: 203e2eb5837f641e144c193e6432f9d256f98cd4

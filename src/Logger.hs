@@ -11,6 +11,7 @@ module Logger
   , fromFd
     -- * Log
   , builder
+  , boundedBuilder
   , bytes
   , byteArray
   , cstring
@@ -35,7 +36,9 @@ import Posix.File (uninterruptibleWriteByteArray,uninterruptibleGetStatusFlags)
 import System.IO (Handle)
 import System.Posix.Types (Fd(Fd))
 
+import qualified Arithmetic.Types as Arithmetic
 import qualified Data.ByteArray.Builder as Builder
+import qualified Data.ByteArray.Builder.Bounded as BB
 import qualified Data.Bytes as Bytes
 import qualified Data.Bytes.Chunks as Chunks
 import qualified Data.Primitive as PM
@@ -115,6 +118,11 @@ builder logger@(Logger _ _ _ ref counterRef) bldr = do
   !counter <- bumpCounter counterRef
   when (counter >= threshold) (flush logger)
 
+-- | Log the unsliced byte array that results from executing
+-- the bounded builder.
+boundedBuilder :: Logger -> Arithmetic.Nat n -> BB.Builder n -> IO ()
+boundedBuilder logger n b = byteArray logger (BB.run n b)
+
 -- | Log a byte sequence.
 bytes :: Logger -> Bytes -> IO ()
 bytes logger@(Logger _ _ _ ref counterRef) !b = do
@@ -123,7 +131,7 @@ bytes logger@(Logger _ _ _ ref counterRef) !b = do
   !counter <- bumpCounter counterRef
   when (counter >= threshold) (flush logger)
 
--- | Log an unsliced byte sequence.
+-- | Log an unsliced byte array.
 byteArray :: Logger -> ByteArray -> IO ()
 byteArray logger = bytes logger . Bytes.fromByteArray
 

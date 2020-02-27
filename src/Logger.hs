@@ -206,21 +206,21 @@ die e = IO (Exts.raiseIO# e)
 flagsFailure :: SomeException
 {-# noinline flagsFailure #-}
 flagsFailure = toException
-  (userError "Data.Bytes.Log.open: fcntl failed")
+  (userError "Logger: fcntl failed")
 
 statusWriteFailure :: SomeException
 {-# noinline statusWriteFailure #-}
 statusWriteFailure = toException
-  (userError "Data.Bytes.Log.open: descriptor must have O_WRONLY or O_RDWR")
+  (userError "Logger: descriptor must have O_WRONLY or O_RDWR")
 
 flushFailure :: SomeException
 {-# noinline flushFailure #-}
-flushFailure = toException (userError "Data.Bytes.Log: flush encountered unknown error")
+flushFailure = toException (userError "Logger: flush encountered unknown error")
 
 flushBadFdFailure :: SomeException
 {-# noinline flushBadFdFailure #-}
-flushBadFdFailure = toException (userError "Data.Bytes.Log: EBADF while flushing")
+flushBadFdFailure = toException (userError "Logger: EBADF while flushing")
 
 threadedRuntimeRequired :: SomeException
 {-# noinline threadedRuntimeRequired #-}
-threadedRuntimeRequired = toException (userError "Data.Bytes.Log: threaded runtime required")
+threadedRuntimeRequired = toException (userError "Logger: threaded runtime required")

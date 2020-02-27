@@ -12,6 +12,7 @@ module Logger
     -- * Log
   , builder
   , bytes
+  , byteArray
   , cstring
     -- * Flush
   , flush
@@ -25,7 +26,7 @@ import Data.ByteArray.Builder (Builder)
 import Data.Bytes.Chunks (Chunks)
 import Data.Bytes.Types (Bytes(Bytes))
 import Data.IORef (IORef,atomicModifyIORef',newIORef)
-import Data.Primitive (MutablePrimArray)
+import Data.Primitive (MutablePrimArray,ByteArray)
 import Foreign.C.Error (eINTR,eWOULDBLOCK,eAGAIN,eBADF)
 import Foreign.C.String (CString)
 import GHC.Exts (RealWorld)
@@ -35,6 +36,7 @@ import System.IO (Handle)
 import System.Posix.Types (Fd(Fd))
 
 import qualified Data.ByteArray.Builder as Builder
+import qualified Data.Bytes as Bytes
 import qualified Data.Bytes.Chunks as Chunks
 import qualified Data.Primitive as PM
 import qualified GHC.Exts as Exts
@@ -120,6 +122,10 @@ bytes logger@(Logger _ _ _ ref counterRef) !b = do
     (\cs0 -> let !cs1 = Chunks.ChunksCons b cs0 in (cs1,()))
   !counter <- bumpCounter counterRef
   when (counter >= threshold) (flush logger)
+
+-- | Log an unsliced byte sequence.
+byteArray :: Logger -> ByteArray -> IO ()
+byteArray logger = bytes logger . Bytes.fromByteArray
 
 bumpCounter :: MutablePrimArray RealWorld Int -> IO Int
 bumpCounter arr = do

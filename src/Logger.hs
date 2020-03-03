@@ -23,7 +23,7 @@ import Control.Concurrent (MVar,threadWaitWrite,putMVar,newMVar,tryTakeMVar,rtsS
 import Control.Exception (SomeException,toException,onException,mask)
 import Control.Monad (when)
 import Data.Bits ((.&.))
-import Data.ByteArray.Builder (Builder)
+import Data.Bytes.Builder (Builder)
 import Data.Bytes.Chunks (Chunks)
 import Data.Bytes.Types (Bytes(Bytes))
 import Data.IORef (IORef,atomicModifyIORef',newIORef)
@@ -37,8 +37,8 @@ import System.IO (Handle)
 import System.Posix.Types (Fd(Fd))
 
 import qualified Arithmetic.Types as Arithmetic
-import qualified Data.ByteArray.Builder as Builder
-import qualified Data.ByteArray.Builder.Bounded as BB
+import qualified Data.Bytes.Builder as Builder
+import qualified Data.Bytes.Builder.Bounded as BB
 import qualified Data.Bytes as Bytes
 import qualified Data.Bytes.Chunks as Chunks
 import qualified Data.Primitive as PM
@@ -116,7 +116,10 @@ builder logger@(Logger _ _ _ ref counterRef) bldr = do
        in (cs1,())
     )
   !counter <- bumpCounter counterRef
-  when (counter >= threshold) (flush logger)
+  when (counter >= threshold) $ do
+    -- Reset the counter
+    PM.writePrimArray counterRef 0 0
+    flush logger
 
 -- | Log the unsliced byte array that results from executing
 -- the bounded builder.

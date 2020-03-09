@@ -19,7 +19,7 @@ library
     , bytebuild >=0.3.4
     , byteslice >=0.2.2
     , natural-arithmetic >=0.1.2
-    , posix-api >=0.3.3
+    , posix-api >=0.3.4
     , primitive >=0.7
   hs-source-dirs: src
   ghc-options: -O2 -Wall

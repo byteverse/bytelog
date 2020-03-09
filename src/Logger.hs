@@ -76,7 +76,7 @@ data Logger = Logger
 
 -- | Convert a 'Handle' to a logger by extracting its file descriptor.
 -- Warning: the caller must ensure that the handle does not get garbage
--- collected. 
+-- collected. This is very dangerous.
 fromHandle :: Handle -> IO Logger
 fromHandle h = do
   FD.FD{FD.fdFD=fd} <- FD.handleToFd h

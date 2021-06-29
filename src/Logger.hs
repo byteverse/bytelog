@@ -15,6 +15,7 @@ module Logger
   , bytes
   , byteArray
   , cstring
+  , cstring#
     -- * Flush
   , flush
   ) where
@@ -30,7 +31,7 @@ import Data.IORef (IORef,atomicModifyIORef',newIORef)
 import Data.Primitive (MutablePrimArray,ByteArray)
 import Foreign.C.Error (eINTR,eWOULDBLOCK,eAGAIN,eBADF)
 import Foreign.C.String (CString)
-import GHC.Exts (RealWorld)
+import GHC.Exts (Ptr(Ptr),RealWorld,Addr#)
 import GHC.IO (IO(IO))
 import Posix.File (uninterruptibleWriteByteArray,uninterruptibleGetStatusFlags)
 import System.IO (Handle)
@@ -106,6 +107,17 @@ threshold = 32
 -- | Log a @NUL@-terminated C string.
 cstring :: Logger -> CString -> IO ()
 cstring g str = builder g (Builder.cstring str)
+
+-- | Log a @NUL@-terminated C string. Takes the unboxed equivalent of @CString@.
+-- This improves legibility in a common case:
+--
+-- > cstring logger (Ptr "Initializing..."#)
+--
+-- This can be written more succinctly as:
+--
+-- > cstring# logger "Initializing..."#
+cstring# :: Logger -> Addr# -> IO ()
+cstring# g str = builder g (Builder.cstring (Ptr str))
 
 -- | Log the chunks that result from executing the byte builder.
 builder :: Logger -> Builder -> IO ()

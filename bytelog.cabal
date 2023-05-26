@@ -1,6 +1,6 @@
 cabal-version: 2.4
 name: bytelog
-version: 0.1.1.0
+version: 0.1.2.0
 synopsis: Fast logging
 bug-reports: https://github.com/byteverse/bytelog
 license: BSD-3-Clause

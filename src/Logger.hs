@@ -12,6 +12,7 @@ module Logger
     -- * Log
   , builder
   , boundedBuilder
+  , chunks
   , bytes
   , byteArray
   , cstring
@@ -119,11 +120,28 @@ cstring g str = builder g (Builder.cstring str)
 cstring# :: Logger -> Addr# -> IO ()
 cstring# g str = builder g (Builder.cstring (Ptr str))
 
+chunks :: Logger -> Chunks -> IO ()
+{-# noinline chunks #-}
+chunks logger@(Logger _ _ _ ref counterRef) ch = do
+  atomicModifyIORef' ref
+    (\cs0 ->
+      let !cs1 = Chunks.reverseOnto cs0 ch
+       in (cs1,())
+    )
+  !counter <- bumpCounter counterRef
+  when (counter >= threshold) $ do
+    -- Reset the counter
+    PM.writePrimArray counterRef 0 0
+    flush logger
+
 -- | Log the chunks that result from executing the byte builder.
 builder :: Logger -> Builder -> IO ()
 builder logger@(Logger _ _ _ ref counterRef) bldr = do
   atomicModifyIORef' ref
     (\cs0 ->
+      -- Why use reversedOnto? The chunks are arranged backwards.
+      -- in the buffer. When we flush, they get reversed and end
+      -- up in the correct order.
       let !cs1 = Builder.reversedOnto 240 bldr cs0
        in (cs1,())
     )
@@ -167,7 +185,7 @@ flush (Logger fd nonblocking lock ref _) = mask $ \restore -> tryTakeMVar lock >
   Nothing -> pure ()
   Just (_ :: ()) -> do
     -- Atomically remove all logs from the batch. GHC guarantees
-    -- that this is cannot be interrupted by async exceptions
+    -- that this cannot be interrupted by async exceptions
     -- inside of mask.
     yanked <- atomicModifyIORef' ref (\cs -> (Chunks.ChunksNil,cs))
     -- When cleaning up after an exception, we put all the logs

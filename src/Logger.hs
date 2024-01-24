@@ -17,6 +17,9 @@ module Logger
   , chunks
   , bytes
   , byteArray
+  , shortByteString
+  , text
+  , shortText
   , cstring
   , cstring#
 
@@ -28,11 +31,14 @@ import Control.Concurrent (MVar, newMVar, putMVar, rtsSupportsBoundThreads, thre
 import Control.Exception (SomeException, mask, onException, toException)
 import Control.Monad (when)
 import Data.Bits ((.&.))
+import Data.ByteString.Short (ShortByteString)
 import Data.Bytes.Builder (Builder)
 import Data.Bytes.Chunks (Chunks)
 import Data.Bytes.Types (Bytes (Bytes))
 import Data.IORef (IORef, atomicModifyIORef', newIORef)
 import Data.Primitive (ByteArray, MutablePrimArray)
+import Data.Text (Text)
+import Data.Text.Short (ShortText)
 import Foreign.C.Error (eAGAIN, eBADF, eINTR, eWOULDBLOCK)
 import Foreign.C.String (CString)
 import GHC.Exts (Addr#, Ptr (Ptr), RealWorld)
@@ -46,6 +52,7 @@ import qualified Data.Bytes as Bytes
 import qualified Data.Bytes.Builder as Builder
 import qualified Data.Bytes.Builder.Bounded as BB
 import qualified Data.Bytes.Chunks as Chunks
+import qualified Data.Bytes.Text.Utf8 as Utf8
 import qualified Data.Primitive as PM
 import qualified GHC.Exts as Exts
 import qualified GHC.IO.FD as FD
@@ -169,6 +176,12 @@ the bounded builder.
 boundedBuilder :: Logger -> Arithmetic.Nat n -> BB.Builder n -> IO ()
 boundedBuilder logger n b = byteArray logger (BB.run n b)
 
+text :: Logger -> Text -> IO ()
+text logger !t = bytes logger (Utf8.fromText t)
+
+shortText :: Logger -> ShortText -> IO ()
+shortText logger !t = bytes logger (Utf8.fromShortText t)
+
 -- | Log a byte sequence.
 bytes :: Logger -> Bytes -> IO ()
 bytes logger@(Logger _ _ _ ref counterRef) !b = do
@@ -181,6 +194,10 @@ bytes logger@(Logger _ _ _ ref counterRef) !b = do
 -- | Log an unsliced byte array.
 byteArray :: Logger -> ByteArray -> IO ()
 byteArray logger = bytes logger . Bytes.fromByteArray
+
+-- | Log a unsliced @ShortByteString@.
+shortByteString :: Logger -> ShortByteString -> IO ()
+shortByteString logger = bytes logger . Bytes.fromShortByteString
 
 bumpCounter :: MutablePrimArray RealWorld Int -> IO Int
 bumpCounter arr = do

@@ -1,5 +1,11 @@
 # Revision history for bytelog
 
+## 0.1.3.0 -- 2024-01-24
+
+* Add `shortByteString`.
+* Add `shortText`.
+* Add `text`.
+
 ## 0.1.2.0 -- 2024-01-09
 
 * Add `chunks`.

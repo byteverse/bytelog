@@ -1,5 +1,7 @@
 # Revision history for bytelog
 
+Test message.
+
 ## 0.1.2.0 -- 2024-01-09
 
 * Add `chunks`.

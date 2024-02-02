@@ -1,6 +1,6 @@
 # Revision history for bytelog
 
-## 0.1.2.1 -- 2024-02-02
+## 0.1.3.1 -- 2024-02-02
 
 * Update package metadata.
 

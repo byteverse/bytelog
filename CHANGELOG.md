@@ -1,5 +1,9 @@
 # Revision history for bytelog
 
+## 0.1.2.1 -- 2024-02-02
+
+* Update package metadata.
+
 ## 0.1.2.0 -- 2024-01-09
 
 * Add `chunks`.
